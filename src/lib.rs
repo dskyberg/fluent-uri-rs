@@ -1064,6 +1064,24 @@ impl FromStr for Uri<String> {
     }
 }
 
+impl serde::ser::Serialize for Uri<String> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(self.clone().into_string().as_str())
+    }
+}
+
+impl serde::ser::Serialize for Uri<&str> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(self.clone().as_str())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1074,5 +1092,12 @@ mod tests {
         assert_eq!(u, u);
         let v = Uri::parse("http://127.0.0.1:80807/").unwrap();
         assert_ne!(u, v);
+    }
+
+    #[test]
+    fn test_serialize() {
+        let u = Uri::parse("http://127.0.0.1:80808/").expect("failed");
+        let json = serde_json::to_string(&u).expect("failed to serialize");
+        println!("{}", &json);
     }
 }
