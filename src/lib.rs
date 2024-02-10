@@ -50,6 +50,7 @@ mod parser;
 use crate::enc::{EStr, Split};
 use alloc::{string::String, vec::Vec};
 use core::{iter::Iterator, marker::PhantomData, mem::ManuallyDrop, ptr::NonNull, slice, str};
+use std::str::FromStr;
 
 #[cfg(feature = "std")]
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -442,6 +443,19 @@ impl<'i, 'o, T: Io<'i, 'o>> Uri<T> {
     #[inline]
     pub fn is_absolute(&self) -> bool {
         self.scheme_end.is_some() && self.fragment_start.is_none()
+    }
+
+    #[inline]
+    fn as_bytes(&self) -> &[u8] {
+        // SAFETY: The indexes are within bounds.
+        unsafe { slice::from_raw_parts(self.ptr.get(), self.len() as usize) }
+    }
+}
+
+impl<'i, 'o, T: Io<'i, 'o>> PartialEq for Uri<T> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.as_bytes() == other.as_bytes()
     }
 }
 
@@ -1040,5 +1054,25 @@ impl Path {
         let mut split = path.split('/');
         split.finished = self.as_str().is_empty();
         split
+    }
+}
+
+impl FromStr for Uri<String> {
+    type Err = ParseError;
+    fn from_str(s: &str) -> core::prelude::v1::Result<Self, Self::Err> {
+        Uri::<&str>::parse(s).map(|uri| uri.to_owned())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compares_uri() {
+        let u = Uri::parse("http://127.0.0.1:80808/").unwrap();
+        assert_eq!(u, u);
+        let v = Uri::parse("http://127.0.0.1:80807/").unwrap();
+        assert_ne!(u, v);
     }
 }
