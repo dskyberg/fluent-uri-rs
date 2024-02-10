@@ -1096,7 +1096,9 @@ mod tests {
 
     #[test]
     fn test_serialize() {
-        let u = Uri::parse("http://127.0.0.1:80808/").expect("failed");
+        let u = "http://127.0.0.1:80808/"
+            .parse::<Uri<String>>()
+            .expect("fail");
         let json = serde_json::to_string(&u).expect("failed to serialize");
         println!("{}", &json);
     }
