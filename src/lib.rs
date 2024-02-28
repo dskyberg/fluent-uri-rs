@@ -1078,7 +1078,17 @@ impl serde::ser::Serialize for Uri<&str> {
     where
         S: serde::ser::Serializer,
     {
-        serializer.serialize_str(self.clone().as_str())
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for Uri<String> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse::<Uri<String>>().map_err(serde::de::Error::custom)
     }
 }
 
@@ -1101,5 +1111,12 @@ mod tests {
             .expect("fail");
         let json = serde_json::to_string(&u).expect("failed to serialize");
         println!("{}", &json);
+    }
+
+    #[test]
+    fn test_deserialize() {
+        let json = r#""http://127.0.0.1:80808/""#;
+        let u = serde_json::from_str::<Uri<String>>(json).expect("Fail");
+        dbg!(&u);
     }
 }
